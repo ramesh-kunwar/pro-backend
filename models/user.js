@@ -2,7 +2,7 @@ const mongoose = require("mongoose")
 const validator = require("validator")
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
-
+const crypto = require("crypto");
 
 const userSchema = new mongoose.Schema({
 
@@ -61,5 +61,22 @@ userSchema.methods.isValidatedPassword = async (userPassword) => {
 userSchema.methods.getJwtToken = function () {
     return jwt.sign({ id: this._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRY })
 }
+
+// generate forgot password token
+userSchema.methods.getForgotPasswordToken = function () {
+    // generate a long and random string
+    const forgotToken = crypto.randomBytes(20).toString('hex');
+
+    // getting a hash -  make sure to get a hash on backend
+    // while sending to the user, send in plain text
+    this.forgotPasswordToken = crypto.createHash("sha256").update(forgotToken).digest("hex")
+
+    // time of token
+    this.forgotPasswordExpiry = Date.now() + 20 * 60 * 1000;
+
+    return forgotToken;
+
+}
+
 
 module.exports = mongoose.model("User", userSchema)
