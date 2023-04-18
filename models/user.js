@@ -29,11 +29,11 @@ const userSchema = new mongoose.Schema({
     photo: {
         id: {// from cloudnary
             type: String,
-            // required: true,
+            required: true,
         },
         secure_url: { // from cloudnary
             type: String,
-            // required: true,
+            required: true,
         },
     },
     forgotPasswordToken: {
