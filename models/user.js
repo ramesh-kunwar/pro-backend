@@ -2,80 +2,91 @@ const mongoose = require("mongoose")
 const validator = require("validator")
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
-const crypto = require("crypto");
+const crypto = require("crypto")
 
 const userSchema = new mongoose.Schema({
-
     name: {
         type: String,
         required: [true, "Please provide a name"],
-        maxlength: [40, "Name should be under 40 characters"]
+        maxlength: [40, "Name shoudl be under 40 characters "],
     },
     email: {
         type: String,
         required: [true, "Please provide an email"],
-        validate: [validator.isEmail, "Please enter email in correct format"],
-        unique: [true, "Email must be unique"]
+        validate: [validator.isEmail, 'Please enter email in correct format'],
+        unique: true,
     },
     password: {
         type: String,
         required: [true, "Please provide a password"],
-        minlength: [6, "Password should be at least characters"],
-        select: false, // whenever you are going to select user model -> pw field doesn't come
+        minlength: [6, "password should be atleast 6 character"],
+        select: false, // when saving to db pw doesn't come.
     },
     role: {
-        role: String,
-        default: "user"
+        type: String,
+        default: 'user'
     },
     photo: {
-        id: {
+        id: {// from cloudnary
             type: String,
-            required: true,
-        }
+            // required: true,
+        },
+        secure_url: { // from cloudnary
+            type: String,
+            // required: true,
+        },
     },
-    forgotPasswordToken: String,
-    forgotPasswordExpiry: Date,
+    forgotPasswordToken: {
+        type: String,
+    },
+    forgotPasswordExpiry: {
+        type: Date,
+    },
     createdAt: {
         type: Date,
-        default: Date.now,
+        default: Date.now
     }
-
 
 })
 
+// encrypt password before save - HOOKS
+userSchema.pre("save", async function (next) { // pre hook
 
-// encrypt the password before save
-userSchema.pre("save", async function (next) {
+    // don't hash the password if it has not been modified (or is not new)
     if (!this.isModified("password")) {
         return next()
     }
-    this.password = await bcrypt.hash(this.password, 10)
+
+    this.password = await bcrypt.hash(this.password, 10);
+    next()
+
 })
 
+
 // validate the password with passed on user password
-userSchema.methods.isValidatedPassword = async (userPassword) => {
-    return await bcrypt.compare(userPassword, this.password);
+userSchema.methods.isValidatedPassword = async function (usersendPassword) {
+
+    return await bcrypt.compare(usersendPassword, this.password)
+
 }
 
 // create and return jwt token
 userSchema.methods.getJwtToken = function () {
-    return jwt.sign({ id: this._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRY })
+   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRY })
 }
 
-// generate forgot password token
+// generate forgot password token (string)
 userSchema.methods.getForgotPasswordToken = function () {
     // generate a long and random string
-    const forgotToken = crypto.randomBytes(20).toString('hex');
+    const forgotToken = crypto.randomBytes(20).toString("hex")
 
-    // getting a hash -  make sure to get a hash on backend
-    // while sending to the user, send in plain text
+    // here we are just encrypting the forgot token
     this.forgotPasswordToken = crypto.createHash("sha256").update(forgotToken).digest("hex")
 
     // time of token
-    this.forgotPasswordExpiry = Date.now() + 20 * 60 * 1000;
+    this.forgotPasswordExpiry = Date.now() + 20 * 60 * 1000
 
-    return forgotToken;
-
+    return forgotToken
 }
 
 
