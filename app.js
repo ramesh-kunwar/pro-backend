@@ -12,11 +12,11 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 // cookies and file upload
 app.use(cookieParser())
-app.use(fileUpload({
-    useTempFiles: true,
-    tempFileDir: "/tmp/"
-}))
 
+app.use(fileUpload({
+    useTempFiles : true,
+    tempFileDir : '/tmp/'
+}));
 app.set("view engine", "ejs")
 
 
