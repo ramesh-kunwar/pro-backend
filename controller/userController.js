@@ -7,7 +7,8 @@ const crypto = require("crypto")
 
 const cookieToken = require("../utils/cookieToken");
 const CustomError = require("../utils/customError")
-const mailHelper = require("../utils/emailHelper")
+const mailHelper = require("../utils/emailHelper");
+const user = require("../models/user");
 
 
 exports.signup = BigPromise(async (req, res, next) => {
@@ -196,4 +197,144 @@ exports.changePassword = BigPromise(async (req, res, next) => {
 
     cookieToken(user, res)
 
+})
+
+
+exports.updateuserDetails = BigPromise(async (req, res, next) => {
+
+    const newData = {
+        name: req.body.name,
+        email: req.body.email,
+
+    }
+
+    if (req.files) {
+        //for photo delete existing photo and update the new one
+
+        const user = await user.findById(req.user.id)
+
+        const imageId = user.photo.id
+
+        // delete existing photo
+        const resp = await cloudinary.uploader.destroy(imageId)
+
+        // upload new photo
+        const result = await cloudinary.uploader.upload(req.files.photo.tempFilePath, {
+            folder: "users",
+            width: 150,
+            crop: 'scale'
+        })
+
+        newData.photo = {
+            id: result.public_id,
+            secure_url: result.secure_url,
+        }
+
+    }
+
+    const user = await User.findByIdAndUpdate(req.user.id, newData, {
+        new: true,
+        runValidators: true,
+    })
+
+    res.status(200).json({
+        success: true,
+        user
+    })
+
+})
+
+// gets all the user present in db
+exports.adminAllUser = BigPromise(async (req, res, next) => {
+
+    const users = await User.find()
+
+    if (!users) {
+        return next("Users not found")
+    }
+
+    res.status(200).json({
+        success: true,
+        users
+    })
+
+
+})
+// admin gets single  user present in db
+exports.adminSingleUser = BigPromise(async (req, res, next) => {
+
+    const user = await User.findById(req.params.id)
+
+    if (!user) {
+        return next("user not found")
+    }
+
+    res.status(200).json({
+        success: true,
+        user
+    })
+
+
+})
+
+
+// admin update single  user present in db
+exports.adminUpdateSingleUser = BigPromise(async (req, res, next) => {
+
+    const newData = {
+        name: req.body.name,
+        email: req.body.email,
+        role: req.body.role,
+
+    }
+
+
+
+    const user = await User.findByIdAndUpdate(req.params.id, newData, {
+        new: true,
+        runValidators: true,
+    })
+
+    res.status(200).json({
+        success: true,
+        user
+    })
+})
+
+
+// admin update single  user present in db
+exports.adminDeleteSingleUser = BigPromise(async (req, res, next) => {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+        return next(CustomError("User not found", 401));
+    }
+
+    // delete image
+    const imageId = user.photo.id;
+    await cloudinary.uploader.destroy(imageId)
+
+    await user.deleteOne();
+
+    res.json({
+        success: true,
+        message: "User deleted",
+        user
+    })
+
+})
+
+// gets all the user whose role is user
+exports.managerAllUser = BigPromise(async (req, res, next) => {
+
+    const users = await User.find({ role: 'user' })
+
+    if (!users) {
+        return next("Users not found")
+    }
+
+    res.status(200).json({
+        success: true,
+        users
+    })
 })
