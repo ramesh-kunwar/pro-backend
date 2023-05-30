@@ -22,7 +22,6 @@ const productSchema = new mongoose.Schema({
       id: {
         type: String,
         required: true,
-        required: true,
       },
       secure_url: {
         type: String,
