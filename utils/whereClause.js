@@ -3,62 +3,61 @@
 // bigQ - // search=coder&page=2&category=shortsleeves&rating[get]=4&price[lte]=999&price[get]=199
 // bigQ is a request query
 
-
 class WhereClause {
-    constructor(base, bigQ) {
-        this.base = base;
-        this.bigQ = bigQ;
-    }
+  constructor(base, bigQ) {
+    this.base = base;
+    this.bigQ = bigQ;
+  }
 
-    search() {
-        const searchword = this.bigQ.search ? {
-            name: {
-                // regx based search -> anyting that closely comes it will show
-                $regex: this.bigQ.search,
-                $options: "i"
-            }
-        } : {}
-
-        this.base = this.base.find({ ...searchword })
-        return this;
-    }
-
-    filter() {
-        const copyQ = { ...this.bigQ }
-
-        delete copyQ["search"]
-        delete copyQ["limit"]
-        delete copyQ["page"]
-
-
-        // convert bigQ into a string => copyQ
-        let stringOfCopyQ = JSON.stringify(copyQ)
-
-        stringOfCopyQ = stringOfCopyQ.replace(/\b(get|lte |gt |lt)/g, m => `$${m}`)
-
-        let jsonOfCopyQ = JSON.parse(stringOfCopyQ)
-
-        this.base = this.base.find(jsonOfCopyQ)
-        return this;
-    }
-
-
-    // for pagination
-    pager(resultperPage) {
-        let currentPage = 1
-        if (this.bigQ.page) {
-            currentPage = this.bigQ.page;
+  // Search functionality
+  search() {
+    // in bigQ find search keyword and find the value of search
+    const searchWord = this.bigQ.search
+      ? {
+          // if search keyword exists in bigQ then extarct that value
+          name: {
+            $regex: this.bigQ.search, // looking for similar names
+            $options: "i", // i for case insentetivity
+          },
         }
+      : {};
 
-        const skipVal = resultperPage * (currentPage - 1)
+    this.base = this.base.find({ ...searchWord });
+    return this;
+  }
 
-        this.base.limit(resultperPage).skip(skipVal)
+  // filtering
+  filter() {
+    const copyQ = { ...this.bigQ };
 
-        return this
+    delete copyQ["search"];
+    delete copyQ["select"];
+    delete copyQ["page"];
 
+    // convert bigQ into string => copyQ
+    let stringOfCopyQ = JSON.stringify(copyQ);
+
+    stringOfCopyQ = stringOfCopyQ.replace(
+      /\b(get|lte|gt|lt)\b/g,
+      (m) => `$${m}`
+    );
+
+    // convert to json
+    const jsonOfCopyQ = JSON.parse(stringOfCopyQ);
+
+    this.base = this.base.find(jsonOfCopyQ);
+  }
+
+  // for pagination
+  pager(resultPerPage) {
+    let currentPage = 1;
+    if (this.bigQ.page) {
+      currentPage = this.bigQ.page;
     }
-
+    const skipVal = resultPerPage * (currentPage - 1);
+    this.base = this.base.limit(resultPerPage).skip(skipVal);
+    return this;
+  }
 }
 
-
-module.exports = WhereClause
+module.exports = WhereClause;
